@@ -1,0 +1,115 @@
+<!-- Chatbot flutuante: cola este bloco antes do </body> do teu site -->
+<div id="chatbot-widget">
+  <button id="chatbot-toggle" type="button" aria-label="Abrir chat">
+    AI
+  </button>
+
+  <section id="chatbot-panel" aria-label="Chatbot">
+    <div id="chatbot-header">
+      <span>Assistente</span>
+      <button id="chatbot-close" type="button" aria-label="Fechar chat">&times;</button>
+    </div>
+    <iframe
+      src="https://chatbotai-mguvynw9ypknahnavb2xrw.streamlit.app/?embed=true"
+      title="Assistente virtual"
+      loading="lazy">
+    </iframe>
+  </section>
+</div>
+
+<style>
+  #chatbot-widget {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 9999;
+    font-family: Arial, sans-serif;
+  }
+
+  #chatbot-toggle {
+    width: 64px;
+    height: 64px;
+    border: 0;
+    border-radius: 50%;
+    background: #2563eb;
+    color: white;
+    font-size: 20px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+  }
+
+  #chatbot-panel {
+    display: none;
+    position: absolute;
+    right: 0;
+    bottom: 78px;
+    width: min(380px, calc(100vw - 40px));
+    height: min(650px, calc(100vh - 120px));
+    overflow: hidden;
+    border-radius: 14px;
+    background: white;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+  }
+
+  #chatbot-panel.is-open {
+    display: block;
+  }
+
+  #chatbot-header {
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px 0 16px;
+    background: #2563eb;
+    color: white;
+    font-weight: 700;
+  }
+
+  #chatbot-close {
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: white;
+    font-size: 26px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  #chatbot-panel iframe {
+    width: 100%;
+    height: calc(100% - 46px);
+    border: 0;
+  }
+
+  @media (max-width: 480px) {
+    #chatbot-widget {
+      right: 14px;
+      bottom: 14px;
+    }
+
+    #chatbot-panel {
+      right: -6px;
+      bottom: 74px;
+      width: calc(100vw - 28px);
+      height: calc(100vh - 105px);
+    }
+  }
+</style>
+
+<script>
+  const chatbotPanel = document.getElementById("chatbot-panel");
+  const chatbotToggle = document.getElementById("chatbot-toggle");
+  const chatbotClose = document.getElementById("chatbot-close");
+
+  chatbotToggle.addEventListener("click", () => {
+    chatbotPanel.classList.toggle("is-open");
+  });
+
+  chatbotClose.addEventListener("click", () => {
+    chatbotPanel.classList.remove("is-open");
+  });
+</script>
