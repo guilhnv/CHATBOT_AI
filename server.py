@@ -19,6 +19,8 @@ except ImportError:
 APP_TITLE = "Assistente do Site"
 APP_CAPTION = "Olá! Estou aqui para ajudar. Faz-me qualquer pergunta."
 CONTENT_FILE = Path(os.getenv("CHATBOT_CONTENT_FILE", "informação.txt"))
+if not CONTENT_FILE.is_absolute():
+    CONTENT_FILE = Path(__file__).parent / CONTENT_FILE
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 if load_dotenv:
@@ -51,11 +53,11 @@ st.caption(APP_CAPTION)
 
 
 @st.cache_data(show_spinner=False)
-def load_context(content_file: str) -> str:
+def load_context(content_file: str, last_modified: float) -> str:
     loader = TextLoader(content_file, encoding="utf-8")
     documents = loader.load()
 
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=80)
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1200, chunk_overlap=160)
     texts = text_splitter.split_documents(documents)
 
     return "\n\n".join(doc.page_content for doc in texts)
@@ -80,7 +82,7 @@ def get_llm() -> ChatGoogleGenerativeAI:
 
 
 try:
-    context = load_context(str(CONTENT_FILE))
+    context = load_context(str(CONTENT_FILE), CONTENT_FILE.stat().st_mtime)
 except Exception as e:
     st.error(f"Erro ao carregar o ficheiro de conteúdo: {e}")
     st.stop()
