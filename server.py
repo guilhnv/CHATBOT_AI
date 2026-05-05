@@ -10,11 +10,23 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = None
+
 
 APP_TITLE = "Assistente do Site"
 APP_CAPTION = "Olá! Estou aqui para ajudar. Faz-me qualquer pergunta."
 CONTENT_FILE = Path(os.getenv("CHATBOT_CONTENT_FILE", "informação.txt"))
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+
+if load_dotenv:
+    load_dotenv()
+
+
+def get_google_api_key() -> str | None:
+    return os.getenv("GOOGLE_API_KEY") or st.secrets.get("GOOGLE_API_KEY")
 
 
 st.set_page_config(
@@ -51,7 +63,7 @@ def load_context(content_file: str) -> str:
 
 @st.cache_resource(show_spinner=False)
 def get_llm() -> ChatGoogleGenerativeAI:
-    google_api_key = os.getenv("GOOGLE_API_KEY") or st.secrets.get("GOOGLE_API_KEY")
+    google_api_key = get_google_api_key()
 
     if not google_api_key:
         st.error(
@@ -134,13 +146,20 @@ if pergunta := st.chat_input("Como posso ajudar?"):
                     chat_history.append(AIMessage(content=msg["content"]))
 
             chain = get_chain()
-            resposta = chain.invoke(
-                {
-                    "context": context,
-                    "chat_history": chat_history,
-                    "question": pergunta,
-                }
-            )
+            try:
+                resposta = chain.invoke(
+                    {
+                        "context": context,
+                        "chat_history": chat_history,
+                        "question": pergunta,
+                    }
+                )
+            except Exception:
+                st.error(
+                    "Erro ao comunicar com o modelo Gemini. "
+                    "Verifica a chave GOOGLE_API_KEY e se o modelo está disponível para a tua conta."
+                )
+                st.stop()
 
             st.markdown(resposta)
 

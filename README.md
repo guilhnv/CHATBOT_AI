@@ -28,6 +28,14 @@ $env:GOOGLE_API_KEY="A_TUA_CHAVE_AQUI"
 python -m streamlit run server.py
 ```
 
+Opcionalmente, podes criar um ficheiro `.env` com o mesmo valor:
+
+```text
+GOOGLE_API_KEY="A_TUA_CHAVE_AQUI"
+```
+
+O `server.py` também carrega `.env` automaticamente quando estiver instalado `python-dotenv`.
+
 Abre o endereço que aparecer no terminal, normalmente:
 
 ```text
