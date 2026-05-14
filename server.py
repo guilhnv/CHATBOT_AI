@@ -1,4 +1,5 @@
 import os
+import re
 from pathlib import Path
 
 import streamlit as st
@@ -28,7 +29,16 @@ if load_dotenv:
 
 
 def get_google_api_key() -> str | None:
-    return os.getenv("GOOGLE_API_KEY") or st.secrets.get("GOOGLE_API_KEY")
+    try:
+        secret_key = st.secrets.get("GOOGLE_API_KEY")
+    except Exception:
+        secret_key = None
+
+    key = os.getenv("GOOGLE_API_KEY") or secret_key
+    if not key or key == "A_TUA_CHAVE_AQUI":
+        return None
+
+    return key
 
 
 st.set_page_config(
@@ -68,11 +78,7 @@ def get_llm() -> ChatGoogleGenerativeAI:
     google_api_key = get_google_api_key()
 
     if not google_api_key:
-        st.error(
-            "Falta configurar a variável GOOGLE_API_KEY. "
-            "Cria uma chave gratuita no Google AI Studio e coloca-a nos secrets da plataforma onde publicares a app."
-        )
-        st.stop()
+        raise RuntimeError("GOOGLE_API_KEY não configurada.")
 
     return ChatGoogleGenerativeAI(
         model=GEMINI_MODEL,
@@ -126,6 +132,50 @@ def get_chain():
     )
 
 
+def normalize_text(text: str) -> list[str]:
+    return re.findall(r"[a-zA-ZÀ-ÿ0-9]+", text.lower())
+
+
+def split_context_sections(text: str) -> list[str]:
+    sections = [section.strip() for section in re.split(r"\n\s*\n", text) if section.strip()]
+    if sections:
+        return sections
+
+    return [sentence.strip() for sentence in re.split(r"(?<=[.!?])\s+", text) if sentence.strip()]
+
+
+def answer_from_content(question: str, text: str) -> str:
+    question_words = set(normalize_text(question))
+    stop_words = {
+        "a", "o", "os", "as", "um", "uma", "uns", "umas", "de", "da", "do", "das", "dos",
+        "em", "no", "na", "nos", "nas", "por", "para", "com", "sem", "que", "qual", "quais",
+        "como", "onde", "quando", "porque", "é", "sao", "são", "e", "ou", "me", "diz",
+        "sobre", "informacao", "informação", "podes", "pode",
+    }
+    keywords = {word for word in question_words if len(word) > 2 and word not in stop_words}
+
+    if not keywords:
+        return "Pergunta-me sobre caminhos académicos, saídas profissionais, apoios, bolsas ou voluntariado."
+
+    scored_sections = []
+    for section in split_context_sections(text):
+        section_words = set(normalize_text(section))
+        score = len(keywords & section_words)
+        if score:
+            scored_sections.append((score, len(section), section))
+
+    if not scored_sections:
+        return "Não tenho informação sobre isso, mas podes contactar-nos diretamente."
+
+    scored_sections.sort(key=lambda item: (-item[0], item[1]))
+    answer = "\n\n".join(section for _, _, section in scored_sections[:2])
+
+    if len(answer) > 900:
+        answer = answer[:900].rsplit(" ", 1)[0] + "..."
+
+    return answer
+
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -147,8 +197,8 @@ if pergunta := st.chat_input("Como posso ajudar?"):
                 else:
                     chat_history.append(AIMessage(content=msg["content"]))
 
-            chain = get_chain()
             try:
+                chain = get_chain()
                 resposta = chain.invoke(
                     {
                         "context": context,
@@ -157,11 +207,7 @@ if pergunta := st.chat_input("Como posso ajudar?"):
                     }
                 )
             except Exception:
-                st.error(
-                    "Erro ao comunicar com o modelo Gemini. "
-                    "Verifica a chave GOOGLE_API_KEY e se o modelo está disponível para a tua conta."
-                )
-                st.stop()
+                resposta = answer_from_content(pergunta, context)
 
             st.markdown(resposta)
 
